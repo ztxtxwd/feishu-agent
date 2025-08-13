@@ -2,7 +2,7 @@ const express = require('express');
 const { MultiServerMCPClient } = require('@langchain/mcp-adapters');
 const { ChatOpenAI } = require('@langchain/openai');
 const { createReactAgent } = require('@langchain/langgraph/prebuilt');
-const { OAuthClientProvider } = require('./mcp-remote-oauth-client-provider/dist/index.js');
+const { OAuthClientProvider } = require('mcp-remote-oauth-client-provider');
 const dotenv = require('dotenv');
 
 dotenv.config();
@@ -28,7 +28,7 @@ function initializeChatModel() {
     console.log('正在初始化ChatOpenAI模型...');
     
     chatModel = new ChatOpenAI({
-      model: "google-claude-sonnet-4",
+      model: "kimi-k2-250711",
       configuration: {
         baseURL: process.env.OPENAI_API_BASE,
         apiKey: process.env.VOLCES_API_KEY,
