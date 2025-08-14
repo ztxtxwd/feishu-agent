@@ -139,6 +139,8 @@ const activeTimers = new Map();
 
 // 存储每个文档的评论缓存，用于检测新增评论
 const commentsCache = new Map();
+// 存储每个文档是否已经初始化的标记
+const initializedDocs = new Set();
 
 // 调用获取全文评论工具并监控新增评论
 async function invokeGetCommentsTools(docId) {
@@ -177,7 +179,7 @@ async function invokeGetCommentsTools(docId) {
       const cachedComments = commentsCache.get(docId) || [];
       
       // 检测新增评论
-      const newComments = detectNewComments(cachedComments, currentComments);
+      const newComments = detectNewComments(cachedComments, currentComments, docId);
       
       // 立即更新缓存，避免重复识别
       commentsCache.set(docId, currentComments);
@@ -328,10 +330,13 @@ async function processNewCommentWithAgent(comment, docId) {
 }
 
 // 检测新增评论的函数
-function detectNewComments(cachedComments, currentComments) {
-  // 如果是第一次获取评论，不算作新增
-  if (cachedComments.length === 0) {
-    console.log(`📋 初始化监控，当前共有 ${currentComments.length} 条评论`);
+function detectNewComments(cachedComments, currentComments, docId) {
+  // 如果是第一次获取评论，只在有评论时打印初始化信息
+  if (!initializedDocs.has(docId)) {
+    initializedDocs.add(docId);
+    if (currentComments.length > 0) {
+      console.log(`📋 初始化监控，当前共有 ${currentComments.length} 条评论`);
+    }
     return [];
   }
   
@@ -389,6 +394,7 @@ app.get('/', (req, res) => {
         clearInterval(activeTimers.get(docInfo.fullId));
         // 清理对应的评论缓存，重新开始监控
         commentsCache.delete(docInfo.fullId);
+        initializedDocs.delete(docInfo.fullId);
       }
       
       // 启动新的定时任务，每秒调用一次获取全文评论工具
@@ -470,6 +476,7 @@ app.delete('/api/monitors/:docId', (req, res) => {
     
     // 清理对应的评论缓存
     commentsCache.delete(docId);
+    initializedDocs.delete(docId);
     
     res.json({
       message: '监控任务停止成功',
@@ -497,6 +504,7 @@ app.delete('/api/monitors', (req, res) => {
   
   // 清理所有评论缓存
   commentsCache.clear();
+  initializedDocs.clear();
   
   res.json({
     message: '所有监控任务已停止',
@@ -695,6 +703,7 @@ process.on('SIGINT', async () => {
   
   // 清理评论缓存
   commentsCache.clear();
+  initializedDocs.clear();
   
   // 清理OAuth认证提供者
   if (authProvider) {
@@ -733,6 +742,7 @@ process.on('SIGTERM', async () => {
   
   // 清理评论缓存
   commentsCache.clear();
+  initializedDocs.clear();
   
   // 清理OAuth认证提供者
   if (authProvider) {
